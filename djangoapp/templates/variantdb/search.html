@@ -1,0 +1,256 @@
+
+{% extends "variantdb/base.html" %}
+{% block content %}
+{% load crispy_forms_tags %}
+
+
+
+
+<div style="width: 100%; overflow: hidden;">
+
+
+
+        <div class = container style="height: 350px; width: 20%; float: left; margin-left: 10%">
+         {% crispy search_form %}
+
+        </div>
+
+        <div id = chartContainer class = container style="height: 350px; width: 50%; float: right; margin-right: 10%">
+{% if chr_result %}
+<script>
+    window.onload = function () {
+    
+    var chart = new CanvasJS.Chart("chartContainer", {
+      exportEnabled: true,
+      animationEnabled: true,
+      title:{
+        text: "Molecular Consequence"
+      },
+      legend:{
+        cursor: "pointer",
+        itemclick: explodePie
+      },
+      data: [{
+        type: "pie",
+        showInLegend: true,
+        toolTipContent: "{name}: <strong>{y}</strong>",
+        indexLabel: "{name} - {y}",
+        dataPoints: [
+          { y: {{ intron_variant_count }}, name: "intron_variant" },
+          { y: {{missense_variant_count}}, name: "missense_variant" },
+          { y: {{synonymous_variant_count}}, name:  "synonymous_variant" },
+          { y: {{frameshift_variant_count}}, name:  "frameshift_variant" },
+          { y: {{five_prime_UTR_variant_count}}, name:  "5_prime_UTR_variant" },
+          { y: {{inframe_deletion_count}}, name: "inframe_deletion" },
+          { y: {{non_coding_transcript_exon_variant_count}}, name: "non_coding_transcript_exon_variant"},
+          { y: {{stop_gained_count}}, name:  "stop_gained" },
+          { y: {{downstream_gene_variant_count}}, name:  "downstream_gene_variant" },
+          { y: {{three_prime_UTR_variant_count}}, name:  "3_prime_UTR_variant" },
+          { y: {{splice_region_variant_count}}, name: "splice_region_variant" },
+          { y: {{splice_donor_variant_count}}, name: "splice_donor_variant", color:'red'}
+        ]
+      }]
+    });
+    chart.render();
+    }
+    
+    function explodePie (e) {
+      if(typeof (e.dataSeries.dataPoints[e.dataPointIndex].exploded) === "undefined" || !e.dataSeries.dataPoints[e.dataPointIndex].exploded) {
+        e.dataSeries.dataPoints[e.dataPointIndex].exploded = true;
+      } else {
+        e.dataSeries.dataPoints[e.dataPointIndex].exploded = false;
+      }
+      e.chart.render();
+    
+    }
+</script>
+
+<script>
+    $(document).ready(function(){
+        
+        // Setup - add a text input to each footer cell
+           $('#results tfoot th add').each( function () {
+               var title = $(this).text();
+               $(this).html( '<input type="text" class="form-control" placeholder="Search '+title+'" />' );
+           } );
+   
+        
+           // DataTable
+             // Inititialise DataTable
+         var table = $('#results').DataTable({
+           "paging":   true,
+           "ordering": true,
+           "info":     false,
+           "pageLength": 10,
+           "searching": true,
+           "aaSorting": [],
+         });
+        
+           // Apply the search
+           table.columns().every( function () {
+               var that = this;
+        
+               $( 'input', this.footer() ).on( 'keyup change', function () {
+                   if ( that.search() !== this.value ) {
+                       that
+                           .search( this.value )
+                           .draw();
+                   }
+               } );
+           } );
+         
+
+       });
+
+
+    </script>
+
+            <div id="chartContainer" style="height: 300px; width: 100%;"></div>
+            <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+{% endif %}
+        </div>
+
+</div>
+
+<div class = container>
+    {% if zero_records %}
+     <h2>   {{ zero_records }} </h2>
+    {% endif %}
+
+
+    {% if chr_result %}
+    {{count}} records returned
+    
+
+
+        
+        <div id="wrapper">
+        <table border=10 id="results" align=centre cellpadding=100>
+       
+            {% csrf_token %}
+            <thead>
+              <tr>
+                <th>Chromosome</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Allele</th>
+                <th>Variant Class</th>
+                <th>Clinical Significance</th>
+                <th>MAF</th>
+                <th>Molecular Consequence</th>
+                <th>Name</th>
+
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in chr_result %}
+              {% for chr in record.mappings %}
+              <tr onclick="showHideRow('{{record.name}}');">
+                 <td> {{chr.seq_region_name}}</td>
+                 <td> {{chr.start}}</td>
+                 <td> {{chr.end}}</td>
+                 <td> {{chr.allele_string}}</td>
+
+                 <td> {{record.var_class}}</td>
+                 
+                 <td><p> {{record.clinical_significance.0}} </p>
+                    <p> {{record.clinical_significance.1}} </p> 
+                    <p> {{record.clinical_significance.2}} </p>
+                    <p> {{record.clinical_significance.3}} </p>
+                </td>
+                <td> {{record.MAF}}</td>
+                <td> {{record.most_severe_consequence}}</td>
+                  <td> {{record.name }}</td>
+          
+                </tr>
+                    <tr id={{record.name}} class=hidden_row>
+                    <td colspan="9">
+                
+                    <p class="synonym_find">{{record.synonyms.0}}</p>
+                    <p class="synonym_find">{{record.synonyms.1}}</p>
+                    <p class="synonym_find">{{record.synonyms.2}}</p>
+                    <p class="synonym_find">{{record.synonyms.3}}</p>
+                    <p class="synonym_find">{{record.synonyms.4}}</p>
+                    <p class="synonym_find">{{record.synonyms.5}}</p>
+                    <p class="synonym_find">{{record.synonyms.6}}</p>
+                    <p class="synonym_find">{{record.synonyms.7}}</p>
+                    <p class="synonym_find">{{record.synonyms.8}}</p>
+                    <p class="synonym_find">{{record.synonyms.9}}</p>
+                    <p class="synonym_find">{{record.synonyms.10}}</p>
+                    <p class="synonym_find">{{record.synonyms.11}}</p>
+                    <p class="synonym_find">{{record.synonyms.12}}</p>
+                    <p class="synonym_find">{{record.synonyms.13}}</p>
+                    <p class="synonym_find">{{record.synonyms.14}}</p>
+                    <p class="synonym_find">{{record.synonyms.15}}</p>
+                    <p class="synonym_find">{{record.synonyms.16}}</p>
+                    <p class="synonym_find">{{record.synonyms.17}}</p>
+                    <p class="synonym_find">{{record.synonyms.18}}</p>
+                    <p class="synonym_find">{{record.synonyms.19}}</p>
+                    <p class="synonym_find">{{record.synonyms.20}}</p>
+                    <p class="synonym_find">{{record.synonyms.21}}</p>
+                    <p class="synonym_find">{{record.synonyms.22}}</p>
+                    <p class="synonym_find">{{record.synonyms.23}}</p>
+                    <p class="synonym_find">{{record.synonyms.24}}</p>
+                    <p class="synonym_find">{{record.synonyms.25}}</p>
+                    <p class="synonym_find">{{record.synonyms.26}}</p>
+                    <p class="synonym_find">{{record.synonyms.27}}</p>
+                    <p class="synonym_find">{{record.synonyms.28}}</p>
+                    <p class="synonym_find">{{record.synonyms.29}}</p>
+                    <p class="synonym_find">{{record.synonyms.30}}</p>
+                    <p class="synonym_find">{{record.synonyms.31}}</p>
+                    <p class="synonym_find">{{record.synonyms.32}}</p>
+                    <p class="synonym_find">{{record.synonyms.33}}</p>
+                    <p class="synonym_find">{{record.synonyms.34}}</p>
+                    <p class="synonym_find">{{record.synonyms.35}}</p>
+                    <p class="synonym_find">{{record.synonyms.36}}</p>
+                    <p class="synonym_find">{{record.synonyms.37}}</p>
+                    
+                </td>
+                </tr>
+
+              {% endfor %}
+              {% endfor %} 
+            </tbody>
+            <tfoot>
+              <tr>
+                <th><add></add></th>
+                <th><add></add></th>
+                <th><add></add></th>
+                <th><add></add></th>
+                <th><add></add></th>
+                <th><add></add></th>
+                <th><add></add></th>
+                <th><add></add></th>
+                <th><add></add></th>
+
+              </tr>
+            </tfoot>
+         
+          </table>
+    
+
+
+
+
+        </div>
+
+
+
+
+
+
+          <input class="form-check-input " type="hidden" name='request_id' form = "download_data" value=
+          '{{ request_id }}'>
+          {% if structures %}
+          <div class="bold">
+            <button type="submit" class="btn btn-primary btn-lg btn-block" name='get_file' value='download' form='download_data'>Download</button>
+         </div>
+        {% endif %}
+
+        
+        <!-- Initialise DataTables-->
+
+
+{% endif %}
+
+{% endblock %}
